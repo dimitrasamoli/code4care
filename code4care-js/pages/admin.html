@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin — Audit Chain</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🏥 Code4Care <span class="muted" style="font-weight:400">— Admin / Audit</span></h1>
+    <nav><a href="index.html">← Home</a></nav>
+  </header>
+  <main>
+    <div class="card stats" id="stats"></div>
+    <div class="card">
+      <h2>⛓️ Blockchain audit chain</h2>
+      <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+        <button id="verify">🔐 Verify chain</button>
+        <button class="secondary" id="export">⬇ Export JSON</button>
+        <button class="secondary" id="tamper">⚠️ Tamper test</button>
+      </div>
+      <div id="status" class="muted"></div>
+      <div id="chain" style="margin-top:1rem"></div>
+    </div>
+  </main>
+  <script type="module">
+    import "../app.js";
+    const { store, verifyChain } = Code4Care;
+
+    function render() {
+      const cases = store.listCases();
+      const chain = store.listChain();
+      const today = cases.filter(c => new Date(c.createdAt).toDateString() === new Date().toDateString());
+      const high = cases.filter(c => c.riskLevel === "high" && c.status !== "treated");
+      const treated = today.filter(c => c.status === "treated");
+      document.getElementById("stats").innerHTML = `
+        <div class="stat"><div class="num">${today.length}</div><div class="label">Σήμερα</div></div>
+        <div class="stat"><div class="num">${high.length}</div><div class="label">High risk active</div></div>
+        <div class="stat"><div class="num">${treated.length}</div><div class="label">Treated σήμερα</div></div>
+        <div class="stat"><div class="num">${chain.length}</div><div class="label">Blocks στην αλυσίδα</div></div>`;
+
+      document.getElementById("chain").innerHTML = chain.length === 0
+        ? '<p class="muted">Καμία ενέργεια ακόμα</p>'
+        : chain.slice().reverse().map(b => `
+          <div class="block">
+            <span class="id">#${b.id}</span> · ${b.actionType}
+            ${b.previousStatus ? `· ${b.previousStatus} → <strong>${b.newStatus}</strong>` : ""}
+            <span class="muted">· ${new Date(b.timestamp).toLocaleString()} · actor: ${b.actorRole}</span>
+            <div class="prev">prev: ${b.previousHash ? b.previousHash.slice(0,32)+"…" : "GENESIS"}</div>
+            <div class="hash">hash: ${b.currentHash.slice(0,32)}…</div>
+          </div>`).join("");
+    }
+
+    document.getElementById("verify").addEventListener("click", async () => {
+      const r = await verifyChain();
+      document.getElementById("status").innerHTML = r.valid
+        ? `<span class="ok">✅ Chain is VALID — ${r.length} blocks</span>`
+        : `<span class="fail">❌ BROKEN at block #${r.brokenAt} — ${r.reason}</span>`;
+    });
+
+    document.getElementById("export").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(store.listChain(), null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "chain-dump.json";
+      a.click();
+    });
+
+    document.getElementById("tamper").addEventListener("click", async () => {
+      const chain = store.listChain();
+      if (chain.length < 2) { alert("Χρειάζονται τουλάχιστον 2 blocks"); return; }
+      // Παραποίηση: αλλάζουμε newStatus σε ένα παλιό block χωρίς να ξανα-υπολογίσουμε hash
+      chain[Math.floor(chain.length / 2)].newStatus = "TAMPERED";
+      localStorage.setItem("c4c_chain", JSON.stringify(chain));
+      alert("Πειράξαμε ένα block. Πάτα 'Verify chain' τώρα.");
+      render();
+    });
+
+    render();
+    setInterval(render, 2000);
+  </script>
+</body>
+</html>

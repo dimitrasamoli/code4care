@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Code4Care — JS Edition</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🏥 Code4Care <span class="muted" style="font-weight:400">— JS Edition</span></h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="intake.html">Intake</a>
+      <a href="reception.html">Reception</a>
+      <a href="doctor.html">Doctor</a>
+      <a href="patient.html">Patient</a>
+      <a href="admin.html">Admin / Audit</a>
+    </nav>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Intelligent Patient Flow Management</h2>
+      <p class="muted">
+        Πλήρης αυτόνομη υλοποίηση σε καθαρό JavaScript: digital triage, risk scoring,
+        δυναμική ουρά, και blockchain-inspired audit trail. Όλα τα δεδομένα μένουν
+        τοπικά (localStorage).
+      </p>
+      <div class="row" style="margin-top:1rem">
+        <a class="col" href="intake.html"><button>📝 Νέο περιστατικό</button></a>
+        <a class="col" href="doctor.html"><button class="secondary">🩺 Doctor queue</button></a>
+        <a class="col" href="admin.html"><button class="secondary">⛓️ Audit chain</button></a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Πώς λειτουργεί η αλυσίδα</h3>
+      <p class="muted">
+        Κάθε αλλαγή κατάστασης (νέο περιστατικό, ξεκίνημα θεραπείας, ολοκλήρωση)
+        παράγει ένα block με SHA-256 hash που περιλαμβάνει το hash του προηγούμενου block.
+        Αν κάποιος αλλάξει ένα παλιό block, η αλυσίδα σπάει — και ο verifier το εντοπίζει.
+      </p>
+      <button class="secondary" onclick="if(confirm('Σίγουρα reset;')){Code4Care.store.reset();alert('Done');}">Reset demo data</button>
+    </div>
+  </main>
+  <script type="module" src="../app.js"></script>
+</body>
+</html>

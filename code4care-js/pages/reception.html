@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <title>Reception — Code4Care</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🏥 Code4Care <span class="muted" style="font-weight:400">— Reception</span></h1>
+    <nav><a href="index.html">← Home</a></nav>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Reception Dashboard</h2>
+      <p class="muted">Όλα τα ενεργά περιστατικά. Κάνε κλικ για λεπτομέρειες.</p>
+      <input id="search" placeholder="Αναζήτηση με όνομα..." />
+      <div id="list" style="margin-top:1rem"></div>
+    </div>
+    <div class="card">
+      <h3>Νέα εγγραφή</h3>
+      <a href="intake.html"><button>+ Νέο περιστατικό</button></a>
+    </div>
+  </main>
+  <script type="module">
+    import "../app.js";
+    const { store } = Code4Care;
+    function render() {
+      const q = document.getElementById("search").value.toLowerCase();
+      const cases = store.listCases().filter(c => c.fullName.toLowerCase().includes(q));
+      document.getElementById("list").innerHTML = cases.length === 0
+        ? '<p class="muted">Κανένα περιστατικό</p>'
+        : cases.map(c => `
+          <div class="queue-item">
+            <div>
+              <strong>${c.fullName}</strong> <span class="muted">(${c.age}yo)</span><br/>
+              <span class="muted">${new Date(c.createdAt).toLocaleString()} • ${c.status}</span>
+            </div>
+            <div>${riskBadge(c.riskLevel)} <a href="patient.html?id=${c.id}">→</a></div>
+          </div>`).join("");
+    }
+    render();
+    document.getElementById("search").addEventListener("input", render);
+    setInterval(render, 2000);
+  </script>
+</body>
+</html>

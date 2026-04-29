@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <title>Patient Status — Code4Care</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🏥 Code4Care <span class="muted" style="font-weight:400">— Patient View</span></h1>
+    <nav><a href="index.html">← Home</a></nav>
+  </header>
+  <main id="root"><p class="muted">Φόρτωση...</p></main>
+  <script type="module">
+    import "../app.js";
+    const { store } = Code4Care;
+    const id = new URLSearchParams(location.search).get("id");
+
+    function render() {
+      const root = document.getElementById("root");
+      if (!id) {
+        const cases = store.listCases();
+        root.innerHTML = `<div class="card"><h2>Επιλέξτε case</h2>${
+          cases.map(c => `<div class="queue-item"><span>${c.fullName}</span><a href="patient.html?id=${c.id}">→</a></div>`).join("") || '<p class="muted">Καμία εγγραφή</p>'
+        }</div>`;
+        return;
+      }
+      const c = store.getCase(id);
+      if (!c) { root.innerHTML = '<div class="card"><p>Δεν βρέθηκε</p></div>'; return; }
+      const queue = store.listCases().filter(x => x.status !== "treated");
+      const pos = queue.findIndex(x => x.id === id) + 1;
+      root.innerHTML = `
+        <div class="card">
+          <h2>${c.fullName} ${riskBadge(c.riskLevel)}</h2>
+          <p class="muted">Status: <strong>${c.status}</strong></p>
+          <div class="stats">
+            <div class="stat"><div class="num">${pos || "—"}</div><div class="label">Θέση στην ουρά</div></div>
+            <div class="stat"><div class="num">${c.estimatedWaitMinutes}'</div><div class="label">Εκτ. αναμονή</div></div>
+            <div class="stat"><div class="num">${c.riskScore}</div><div class="label">Risk score</div></div>
+          </div>
+        </div>`;
+    }
+    render();
+    setInterval(render, 2000);
+  </script>
+</body>
+</html>

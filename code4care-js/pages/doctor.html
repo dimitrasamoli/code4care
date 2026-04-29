@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <title>Doctor — Code4Care</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🏥 Code4Care <span class="muted" style="font-weight:400">— Doctor Queue</span></h1>
+    <nav><a href="index.html">← Home</a></nav>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Prioritized Queue</h2>
+      <p class="muted">Ταξινόμηση βάσει risk level (HIGH → MEDIUM → LOW) και ώρας άφιξης.</p>
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module">
+    import "../app.js";
+    const { store, appendAuditBlock } = Code4Care;
+
+    async function changeStatus(id, newStatus) {
+      const c = store.getCase(id);
+      if (!c) return;
+      const previousStatus = c.status;
+      c.status = newStatus;
+      store.saveCase(c);
+      await appendAuditBlock({
+        caseId: id, actionType: "status_change",
+        previousStatus, newStatus,
+        riskScore: c.riskScore, actorRole: "doctor",
+      });
+      render();
+    }
+    window.changeStatus = changeStatus;
+
+    function render() {
+      const cases = store.listCases().filter(c => c.status !== "treated");
+      document.getElementById("list").innerHTML = cases.length === 0
+        ? '<p class="muted">Άδεια ουρά 🎉</p>'
+        : cases.map(c => `
+          <div class="queue-item">
+            <div>
+              ${riskBadge(c.riskLevel)} <strong>${c.fullName}</strong> <span class="muted">(${c.age}yo • score ${c.riskScore})</span><br/>
+              <span class="muted">Συμπτώματα: ${c.symptoms.join(", ") || "—"}</span><br/>
+              <span class="muted">Status: <strong>${c.status}</strong></span>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              ${c.status === "waiting" ? `<button onclick="changeStatus('${c.id}','in_progress')">Έναρξη</button>` : ""}
+              ${c.status === "in_progress" ? `<button onclick="changeStatus('${c.id}','treated')">Ολοκλήρωση</button>` : ""}
+            </div>
+          </div>`).join("");
+    }
+    render();
+    setInterval(render, 2000);
+  </script>
+</body>
+</html>

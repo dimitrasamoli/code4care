@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Intake — Code4Care</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>🏥 Code4Care <span class="muted" style="font-weight:400">— Intake</span></h1>
+    <nav><a href="index.html">← Home</a></nav>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Δήλωση συμπτωμάτων</h2>
+      <form id="intake-form">
+        <div class="row">
+          <div class="col">
+            <label>Ονοματεπώνυμο</label>
+            <input name="full_name" required />
+          </div>
+          <div class="col">
+            <label>Ηλικία</label>
+            <input name="age" type="number" min="0" max="120" required />
+          </div>
+        </div>
+        <div style="margin-top:1rem">
+          <label>Συμπτώματα</label>
+          <div class="symptoms" id="symptoms"></div>
+        </div>
+        <div style="margin-top:1rem">
+          <label><input type="checkbox" name="chronic" /> Έχω χρόνια πάθηση</label>
+        </div>
+        <div style="margin-top:1rem">
+          <label>Σύντομη περιγραφή (προαιρετικό)</label>
+          <textarea name="description" rows="3"></textarea>
+        </div>
+        <button type="submit" style="margin-top:1rem">Υποβολή</button>
+      </form>
+    </div>
+    <div class="card" id="result" hidden></div>
+  </main>
+  <script type="module">
+    import "../app.js";
+    const { computeRisk, SYMPTOMS, store, uuid, appendAuditBlock } = Code4Care;
+
+    const labels = {
+      chest_pain: "Πόνος στο στήθος", breathing: "Δυσκολία αναπνοής",
+      unconscious: "Λιποθυμία", severe_bleeding: "Έντονη αιμορραγία",
+      stroke_signs: "Σημάδια εγκεφαλικού", high_fever: "Υψηλός πυρετός",
+      vomiting: "Εμετός", abdominal_pain: "Κοιλιακό άλγος",
+      headache: "Πονοκέφαλος", injury: "Τραυματισμός", other: "Άλλο"
+    };
+    const sympContainer = document.getElementById("symptoms");
+    sympContainer.innerHTML = SYMPTOMS.map(s =>
+      `<label><input type="checkbox" name="symptoms" value="${s}" /> ${labels[s]}</label>`
+    ).join("");
+
+    document.getElementById("intake-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const symptoms = fd.getAll("symptoms");
+      const age = Number(fd.get("age"));
+      const chronic = fd.get("chronic") === "on";
+      const risk = computeRisk({ age, symptoms, chronicCondition: chronic });
+
+      const c = {
+        id: uuid(),
+        fullName: fd.get("full_name"),
+        age, symptoms,
+        description: fd.get("description") || "",
+        chronicCondition: chronic,
+        riskScore: risk.score,
+        riskLevel: risk.level,
+        estimatedWaitMinutes: risk.estimatedWaitMinutes,
+        status: "waiting",
+        createdAt: new Date().toISOString(),
+      };
+      store.saveCase(c);
+
+      await appendAuditBlock({
+        caseId: c.id, actionType: "case_created",
+        previousStatus: null, newStatus: "waiting",
+        riskScore: c.riskScore, actorRole: "patient",
+        metadata: { symptoms },
+      });
+
+      const r = document.getElementById("result");
+      r.hidden = false;
+      r.innerHTML = `
+        <h3>✅ Καταχωρήθηκε</h3>
+        <p>Risk: ${riskBadge(c.riskLevel)} (${c.riskScore}/100)</p>
+        <p>Εκτιμώμενη αναμονή: <strong>${c.estimatedWaitMinutes} λεπτά</strong></p>
+        <p>Case ID: <code>${c.id}</code></p>
+        <a href="patient.html?id=${c.id}"><button>Δες την κατάστασή σου →</button></a>`;
+      e.target.reset();
+    });
+  </script>
+</body>
+</html>
