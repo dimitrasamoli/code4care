@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { AppHeader } from "@/components/AppHeader";
@@ -14,7 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { calculateRiskScore, estimateWaitMinutes, generateGreekPlate, getOnCallHospital, SYMPTOMS } from "@/lib/risk";
 import { appendAuditBlock } from "@/lib/audit";
 import { toast } from "sonner";
-import { Plus, Search, QrCode as QrIcon, Users, Ambulance } from "lucide-react";
+import { Plus, Search, Users, Ambulance } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Case = Database["public"]["Tables"]["patient_cases"]["Row"];
@@ -31,7 +30,6 @@ function ReceptionDash() {
   const { user, role } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
   const [search, setSearch] = useState("");
-  const [showQr, setShowQr] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
   // new patient form
@@ -77,7 +75,6 @@ function ReceptionDash() {
     );
   }, [cases, search]);
 
-  const intakeUrl = typeof window !== "undefined" ? `${window.location.origin}/intake` : "/intake";
 
   const submitNew = async () => {
     const ageNum = parseInt(age, 10);
@@ -212,9 +209,6 @@ function ReceptionDash() {
             >
               <Ambulance className="mr-2 h-4 w-4" /> Ambulance arrival
             </Button>
-            <Button variant="outline" onClick={() => setShowQr(true)}>
-              <QrIcon className="mr-2 h-4 w-4" /> Show entrance QR
-            </Button>
             <Button onClick={() => setShowNew(true)}>
               <Plus className="mr-2 h-4 w-4" /> Register patient
             </Button>
@@ -287,22 +281,6 @@ function ReceptionDash() {
           </table>
         </div>
       </main>
-
-      {/* QR dialog */}
-      <Dialog open={showQr} onOpenChange={setShowQr}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Hospital entrance QR</DialogTitle></DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            <div className="rounded-2xl bg-white p-4 shadow-md">
-              <QRCodeSVG value={intakeUrl} size={240} />
-            </div>
-            <p className="text-center text-sm text-muted-foreground">
-              Patients scan this QR to open the intake form.
-            </p>
-            <code className="rounded bg-muted px-2 py-1 text-xs">{intakeUrl}</code>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* New patient dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
