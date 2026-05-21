@@ -60,7 +60,7 @@ npm run dev
 
 Add your demo link here:
 
-[Live Demo](https://your-demo-link.com)
+[Live Demo](https://drive.google.com/file/d/1ScjSj5YECvi_5oGaOoRB8VfyrK_VdNrx/view?usp=drive_link)
 
 ---
 
@@ -68,7 +68,7 @@ Add your demo link here:
 
 Add your presentation link here:
 
-[Project Presentation](https://your-presentation-link.com)
+[Project Presentation](https://docs.google.com/presentation/d/1iTtZIZKBFCUyMGvIPn1UOuvDZE9UPFmq/edit?usp=drive_link&ouid=113401953513017140056&rtpof=true&sd=true)
 
 ---
 
