@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { estimateWaitMinutes } from "@/lib/risk";
 import { Activity, Loader2, CheckCircle2, Clock, AlertCircle, Hospital, IdCard, Ambulance } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { LangToggle } from "@/components/LangToggle";
+import { useLang, T } from "@/lib/i18n";
 
 type Case = Database["public"]["Tables"]["patient_cases"]["Row"];
 
@@ -13,6 +15,7 @@ export const Route = createFileRoute("/case/$id")({
 
 function CaseView() {
   const { id } = Route.useParams();
+  const [lang] = useLang();
   // Prevent the patient from navigating back to the intake form / home from this page.
   useBlocker({
     shouldBlockFn: ({ next }) => !next.pathname.startsWith("/case/"),
@@ -109,16 +112,16 @@ function CaseView() {
         <CaseHeader />
         <div className="mx-auto max-w-md px-4 py-20 text-center">
           <AlertCircle className="mx-auto h-10 w-10 text-destructive" />
-          <h1 className="mt-4 text-xl font-bold">Δεν βρέθηκε η περίπτωση</h1>
+          <h1 className="mt-4 text-xl font-bold">{T.notFound[lang]}</h1>
         </div>
       </div>
     );
   }
 
   const statusInfo = {
-    waiting: { icon: Clock, label: "Σε αναμονή", color: "text-risk-medium bg-risk-medium-bg" },
-    in_progress: { icon: Loader2, label: "Εξετάζεστε", color: "text-primary bg-primary/10" },
-    treated: { icon: CheckCircle2, label: "Ολοκληρώθηκε", color: "text-risk-low bg-risk-low-bg" },
+    waiting: { icon: Clock, label: T.st_waiting[lang], color: "text-risk-medium bg-risk-medium-bg" },
+    in_progress: { icon: Loader2, label: T.st_in_progress[lang], color: "text-primary bg-primary/10" },
+    treated: { icon: CheckCircle2, label: T.st_treated[lang], color: "text-risk-low bg-risk-low-bg" },
   }[pcase.status];
 
   const StatusIcon = statusInfo.icon;
@@ -127,6 +130,9 @@ function CaseView() {
     <div className="min-h-screen bg-background">
       <CaseHeader />
       <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+        <div className="mb-4 flex justify-end">
+          <LangToggle />
+        </div>
         <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-elevated)]">
           <div className="text-center">
             <div className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full ${statusInfo.color}`}>
@@ -136,20 +142,20 @@ function CaseView() {
               {pcase.full_name}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Η περίπτωσή σας έχει καταχωρηθεί
+              {T.caseRegistered[lang]}
             </p>
           </div>
 
           {/* Patient ID — prominent */}
           <div className="mt-6 rounded-xl border-2 border-primary/30 bg-primary/5 p-5 text-center">
             <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
-              <IdCard className="h-4 w-4" /> Patient ID
+              <IdCard className="h-4 w-4" /> {T.patientId[lang]}
             </div>
             <div className="mt-2 font-mono text-3xl font-bold tracking-wider text-foreground">
               {pcase.patient_code}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              Κρατήστε αυτόν τον αριθμό — είναι μοναδικός για εσάς
+              {T.keepCode[lang]}
             </div>
           </div>
 
@@ -157,7 +163,7 @@ function CaseView() {
             <div className="mt-4 flex items-center justify-center gap-3 rounded-xl border border-risk-high/30 bg-risk-high-bg px-4 py-3 text-risk-high">
               <Ambulance className="h-5 w-5" />
               <div className="text-sm font-bold">
-                Διακομιδή με ασθενοφόρο
+                {T.ambulanceTransfer[lang]}
                 {pcase.ambulance_plate && (
                   <span className="ml-2 rounded bg-foreground px-2 py-0.5 font-mono text-background">
                     {pcase.ambulance_plate}
@@ -168,17 +174,17 @@ function CaseView() {
           )}
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <Stat label="Status" value={statusInfo.label} />
+            <Stat label={T.status[lang]} value={statusInfo.label} />
             <Stat
-              label="Εκτιμώμενη αναμονή"
+              label={T.estWait[lang]}
               value={
-                pcase.status === "treated"
+                pcase.status === "treated" || pcase.status === "in_progress"
                   ? "—"
-                  : `~${liveWait ?? pcase.estimated_wait_minutes} λεπτά`
+                  : `~${liveWait ?? pcase.estimated_wait_minutes} ${T.minutes[lang]}`
               }
             />
             <Stat
-              label="Θέση στην ουρά"
+              label={T.queuePos[lang]}
               value={position && pcase.status === "waiting" ? `#${position}` : "—"}
             />
           </div>
@@ -188,7 +194,7 @@ function CaseView() {
               <Hospital className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
               <div>
                 <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Εφημερεύον Νοσοκομείο
+                  {T.hospital[lang]}
                 </div>
                 <div className="mt-0.5 text-base font-semibold text-foreground">
                   {pcase.assigned_hospital}
@@ -198,9 +204,7 @@ function CaseView() {
           )}
 
           <p className="mt-6 rounded-lg bg-accent/40 p-4 text-center text-sm text-muted-foreground">
-            Ο χρόνος αναμονής είναι εκτίμηση. Επείγοντα περιστατικά μπορούν να
-            αλλάξουν τη σειρά ανά πάσα στιγμή. Το ιατρικό προσωπικό θα σας
-            καλέσει όταν είναι έτοιμο.
+            {T.waitDisclaimer[lang]}
           </p>
         </div>
       </main>
@@ -219,6 +223,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 // Lock-down header for the patient waiting page — no link back to the form.
 function CaseHeader() {
+  const [lang] = useLang();
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6">
@@ -229,7 +234,7 @@ function CaseHeader() {
           <div className="leading-tight">
             <div className="text-base font-bold text-foreground">Code4Care</div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Σελίδα Αναμονής
+              {T.waitingPage[lang]}
             </div>
           </div>
         </div>

@@ -16,12 +16,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck } from "lucide-react";
+import { useLang, T, type Lang } from "@/lib/i18n";
+
+// Map a symptom id from src/lib/risk.ts to the i18n key used for its label.
+const SYMPTOM_LABEL_KEY: Record<string, keyof typeof T> = {
+  chest_pain: "sym_chest_pain",
+  fever: "sym_fever",
+  breathing: "sym_breathing",
+  dizziness: "sym_dizziness",
+  bleeding: "sym_bleeding",
+  headache: "sym_headache",
+  abdominal: "sym_abdominal",
+  severe_pain: "sym_severe_pain",
+  other: "sym_other",
+};
+
+const t = (k: keyof typeof T, lang: Lang) => T[k][lang];
 
 export function IntakeForm() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [lang] = useLang();
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
+  const [amka, setAmka] = useState("");
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [chronic, setChronic] = useState(false);
   const [description, setDescription] = useState("");
@@ -37,16 +55,20 @@ export function IntakeForm() {
     e.preventDefault();
     const trimmedName = fullName.trim();
     if (trimmedName.length < 3 || !trimmedName.includes(" ")) {
-      toast.error("Παρακαλώ συμπληρώστε πλήρες ονοματεπώνυμο (όνομα και επώνυμο)");
+      toast.error(t("errName", lang));
       return;
     }
     const ageNum = parseInt(age, 10);
     if (isNaN(ageNum) || ageNum < 0 || ageNum > 120) {
-      toast.error("Η ηλικία πρέπει να είναι μεταξύ 0 και 120");
+      toast.error(t("errAge", lang));
+      return;
+    }
+    if (!/^\d{11}$/.test(amka)) {
+      toast.error(t("errAmka", lang));
       return;
     }
     if (symptoms.length === 0) {
-      toast.error("Επιλέξτε τουλάχιστον ένα σύμπτωμα");
+      toast.error(t("errSymptoms", lang));
       return;
     }
 
@@ -68,7 +90,10 @@ export function IntakeForm() {
       full_name: trimmedName,
       age: ageNum,
       symptoms,
-      description: description.trim() || null,
+      // NOTE: AMKA is prepended to the description because patient_cases has no
+      // dedicated `amka` column yet. When a DB migration adds one, replace this
+      // with `amka: amka` and drop the prefix.
+      description: `ΑΜΚΑ: ${amka}${description.trim() ? ` — ${description.trim()}` : ""}`,
       chronic_condition: chronic,
       risk_score: score,
       risk_level: level,
@@ -101,11 +126,11 @@ export function IntakeForm() {
       riskScore: score,
       actorId: user?.id ?? null,
       actorRole: user ? "patient" : "anonymous",
-      metadata: { symptoms, level, patient_code: data.patient_code },
+      metadata: { symptoms, level, patient_code: data.patient_code, amka },
     });
 
     setBusy(false);
-    toast.success(`Καταχωρήθηκε — Patient ID: ${data.patient_code}`);
+    toast.success(`${t("okSubmit", lang)} ${data.patient_code}`);
     navigate({ to: "/case/$id", params: { id: data.id } });
   };
 
@@ -116,18 +141,18 @@ export function IntakeForm() {
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-base">Πλήρες ονοματεπώνυμο</Label>
+          <Label htmlFor="name" className="text-base">{t("fullName", lang)}</Label>
           <Input
             id="name"
             required
-            placeholder="π.χ. Μαρία Παπαδοπούλου"
+            placeholder={t("fullNamePh", lang)}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             className="h-11 text-base"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="age" className="text-base">Ηλικία</Label>
+          <Label htmlFor="age" className="text-base">{t("age", lang)}</Label>
           <Input
             id="age"
             type="number"
@@ -142,11 +167,32 @@ export function IntakeForm() {
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="amka" className="text-base">{t("amka", lang)}</Label>
+        <Input
+          id="amka"
+          required
+          inputMode="numeric"
+          pattern="\d{11}"
+          maxLength={11}
+          placeholder={t("amkaPh", lang)}
+          value={amka}
+          onChange={(e) => setAmka(e.target.value.replace(/\D/g, "").slice(0, 11))}
+          className="h-11 text-base"
+          aria-invalid={amka.length > 0 && amka.length !== 11}
+        />
+        {amka.length > 0 && amka.length !== 11 && (
+          <p className="text-xs text-destructive">{t("errAmka", lang)}</p>
+        )}
+      </div>
+
       <div className="space-y-3">
-        <Label className="text-base">Συμπτώματα (επιλέξτε όσα ισχύουν)</Label>
+        <Label className="text-base">{t("symptoms", lang)}</Label>
         <div className="grid gap-2 sm:grid-cols-2">
           {SYMPTOMS.map((s) => {
             const checked = symptoms.includes(s.id);
+            const labelKey = SYMPTOM_LABEL_KEY[s.id];
+            const label = labelKey ? t(labelKey, lang) : s.label;
             return (
               <label
                 key={s.id}
@@ -157,7 +203,7 @@ export function IntakeForm() {
                 }`}
               >
                 <Checkbox checked={checked} onCheckedChange={() => toggleSymptom(s.id)} />
-                <span className="font-medium text-foreground">{s.label}</span>
+                <span className="font-medium text-foreground">{label}</span>
               </label>
             );
           })}
@@ -166,16 +212,16 @@ export function IntakeForm() {
 
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-base">
         <Checkbox checked={chronic} onCheckedChange={(v) => setChronic(Boolean(v))} />
-        <span>Έχω χρόνια πάθηση (καρδιολογική, διαβήτη κ.λπ.)</span>
+        <span>{t("chronic", lang)}</span>
       </label>
 
       <div className="space-y-2">
-        <Label htmlFor="desc" className="text-base">Σύντομη περιγραφή (προαιρετικό)</Label>
+        <Label htmlFor="desc" className="text-base">{t("description", lang)}</Label>
         <Textarea
           id="desc"
           rows={3}
           maxLength={500}
-          placeholder="Κάτι άλλο που πρέπει να γνωρίζει το ιατρικό προσωπικό;"
+          placeholder={t("descriptionPh", lang)}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="text-base"
@@ -184,15 +230,12 @@ export function IntakeForm() {
 
       <Button type="submit" size="lg" className="w-full h-12 text-base" disabled={busy}>
         {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Υποβολή & Είσοδος στην ουρά
+        {t("submit", lang)}
       </Button>
 
       <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
         <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-        <span>
-          Δεν χρειάζεται σύνδεση. Μετά την υποβολή θα λάβετε μοναδικό
-          <strong> Patient ID</strong> και θα μεταβείτε στη σελίδα αναμονής σας.
-        </span>
+        <span>{t("disclaimer", lang)}</span>
       </div>
     </form>
   );

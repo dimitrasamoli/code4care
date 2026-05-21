@@ -1,45 +1,49 @@
-// Risk scoring engine — ίδια λογική με το TS app.
-
-const SYMPTOM_WEIGHTS = {
-  chest_pain: 40,
-  breathing: 35,
-  unconscious: 50,
-  severe_bleeding: 45,
-  stroke_signs: 50,
-  high_fever: 20,
-  vomiting: 10,
-  abdominal_pain: 15,
-  headache: 10,
-  injury: 15,
-  other: 5,
-};
-
-export const SYMPTOMS = Object.keys(SYMPTOM_WEIGHTS);
-
-/**
- * @param {{ age:number, symptoms:string[], chronicCondition:boolean }} input
- * @returns {{ score:number, level:'low'|'medium'|'high', estimatedWaitMinutes:number }}
- */
 export function computeRisk(input) {
-  let score = 0;
+  const symptoms = new Set(input.symptoms);
 
-  for (const s of input.symptoms) {
-    score += SYMPTOM_WEIGHTS[s] ?? 0;
+  // LEVEL 1 — critical
+  const critical = [
+    "unconscious",
+    "stroke_signs",
+    "severe_bleeding",
+    "breathing",
+    "chest_pain",
+  ];
+
+  if (critical.some(s => symptoms.has(s))) {
+    return {
+      score: 95,
+      level: "high",
+      estimatedWaitMinutes: 5,
+    };
   }
 
-  if (input.age >= 65) score += 20;
-  else if (input.age <= 5) score += 25;
+  // LEVEL 2 — urgent
+  const urgent = [
+    "high_fever",
+    "abdominal_pain",
+    "injury",
+    "vomiting",
+    "headache",
+  ];
 
-  if (input.chronicCondition) score += 15;
+  if (
+    urgent.some(s => symptoms.has(s)) ||
+    input.age >= 65 ||
+    input.age <= 5 ||
+    input.chronicCondition
+  ) {
+    return {
+      score: 60,
+      level: "medium",
+      estimatedWaitMinutes: 25,
+    };
+  }
 
-  score = Math.min(score, 100);
-
-  let level = "low";
-  if (score >= 60) level = "high";
-  else if (score >= 30) level = "medium";
-
-  const estimatedWaitMinutes =
-    level === "high" ? 5 : level === "medium" ? 25 : 60;
-
-  return { score, level, estimatedWaitMinutes };
+  // LEVEL 3 — stable
+  return {
+    score: 20,
+    level: "low",
+    estimatedWaitMinutes: 60,
+  };
 }

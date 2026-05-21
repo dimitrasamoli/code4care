@@ -35,7 +35,7 @@
           <p class="muted">Status: <strong>${c.status}</strong></p>
           <div class="stats">
             <div class="stat"><div class="num">${pos || "—"}</div><div class="label">Θέση στην ουρά</div></div>
-            <div class="stat"><div class="num">${c.estimatedWaitMinutes}'</div><div class="label">Εκτ. αναμονή</div></div>
+            <div class="stat"><div class="num">${c.status === "examining" ? 0 : c.estimatedWaitMinutes}'</div><div class="label">Εκτ. αναμονή</div></div>
             <div class="stat"><div class="num">${c.riskScore}</div><div class="label">Risk score</div></div>
           </div>
         </div>`;

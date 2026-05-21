@@ -4,12 +4,15 @@ import { AppHeader } from "@/components/AppHeader";
 import { IntakeForm } from "@/components/IntakeForm";
 import { fetchOnCallHospital, getOnCallHospital } from "@/lib/risk";
 import { Hospital, CalendarDays, ShieldCheck } from "lucide-react";
+import { LangToggle } from "@/components/LangToggle";
+import { useLang, T } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
 function Index() {
+  const [lang] = useLang();
   const [hospital, setHospital] = useState<string>(getOnCallHospital());
   useEffect(() => {
     fetchOnCallHospital().then(setHospital).catch(() => {});
@@ -50,14 +53,16 @@ function Index() {
 
       {/* Intake form */}
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Φόρμα Ασθενή
-          </h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            Συμπληρώστε τα στοιχεία σας για να μπείτε στην ουρά. Δεν απαιτείται
-            σύνδεση.
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="text-center sm:text-left flex-1">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              {T.patientForm[lang]}
+            </h1>
+            <p className="mt-2 text-base text-muted-foreground">
+              {T.intakeSubtitle[lang]}
+            </p>
+          </div>
+          <LangToggle className="mt-1" />
         </div>
         <IntakeForm />
 
